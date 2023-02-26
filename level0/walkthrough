@@ -14,7 +14,7 @@ there, we find the lines:
 This means atoi is being called on the parameter, then the the result is
 compared to the value 0x1a7 and if the comparison fails, the program jumps
 ahead.
-0x1a7 in binary is 423, so we run:
+0x1a7 in decimal is 423, so we run:
 
     $ ./level0 423
 
