@@ -1,4 +1,4 @@
-We get presented with a binary 'level0.
+We get presented with a binary 'level0'.
 Running it with any argument gives the prompt 'No !'.
 Using gdb, we can look at the asm instructions of the binary:
 
