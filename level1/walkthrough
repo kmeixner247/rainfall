@@ -18,7 +18,7 @@ We use gdb to take a look at the asm instructions again:
 Here we can see that a call to the gets function is performed.
 This function reads input into a buffer until it encounters either a
 returning newline or EOF. It does not perform any checks for a buffer
-overrun, which we will exploit in a so-called 'return from libc attack'.
+overrun, which we will exploit in a so-called 'return to libc attack'.
 
 We give gets enough input to overrun the buffer and overwrite the following
 memory, which contains the memory address of the next instruction.
@@ -55,9 +55,10 @@ For convenience, we use python to feed a string of custom length to the input:
 	$ python -c "print('a'*100)" | ./level1
 	Segmentation fault (core dumped)
 
-With some trial and error, we find that we need to skip 75 bytes to then
+With some trial and error, we find that we need to skip 76 bytes to then
 overwrite the following instruction, at which point we get the following
 error:
+
 	$ python -c "print('a'*76)" | ./level1
 	Illegal instruction (core dumped)
 
