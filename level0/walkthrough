@@ -1,0 +1,39 @@
+We get presented with a binary 'level0.
+Running it with any argument gives the prompt 'No !'.
+Using gdb, we can look at the asm instructions of the binary:
+
+    $ gdb level0
+    layout asm
+
+there, we find the lines:
+
+    0x8048ed4	<main+20>	call	0x804971 <atoi>
+    0x8048ed9	<main+25>	cmp		$0x1a7,%eax
+    0x8048ede	<main+30>	jne		0x8048f58 <main+152>
+
+This means atoi is being called on the parameter, then the the result is
+compared to the value 0x1a7 and if the comparison fails, the program jumps
+ahead.
+0x1a7 in binary is 423, so we run:
+
+    $ ./level0 423
+
+This starts a new shell. Since level0 has an SUID bit set, it executes as
+if the owner of the file is running it. The owner in this case is 'level1',
+as we can see by running ls -l in the beginning:
+
+    $ ls -l
+    total 732
+    -rwsr-x---+ 1 level1 users 747441 Mar  6  2016 level0
+
+Now that we are in a shell as user level1, we have access to
+/home/user/level1/.pass and can simply cat it:
+
+    $ cat /home/user/level/.pass
+    1fe8a524fa4bec01ca4ea2a869af2a02260d4a7d5fe7e7c24d8617e6dca12d3a
+
+This is the password that allows us to enter the next level like this:
+
+    $ exit
+    $ su level1
+    Password: 1fe8a524fa4bec01ca4ea2a869af2a02260d4a7d5fe7e7c24d8617e6dca12d3a
